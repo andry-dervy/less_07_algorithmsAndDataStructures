@@ -15,7 +15,7 @@ int* getArrayRand(int aSize)
     pArr = (int*) new int[aSize];
     for(int i = 0; i < aSize; i++)
     {
-      pArr[i] = rand()%100;
+      pArr[i] = rand()%1000;
     }
   }
   catch (const std::exception&)
@@ -127,51 +127,38 @@ void sortThickPartitioning(int *pArr, int aFirst, int aLast)
   }
 }
 
+void sortInserts(int *pArr, int aFirst, int aLast)
+{
+  if(aFirst >= aLast) return;
+  int indLast = aFirst;
+  while(indLast < aLast)
+  {
+    indLast++;
+    for(int i = aFirst; i < indLast; i++)
+      if(pArr[i] > pArr[indLast])
+        swapInt(&pArr[i],&pArr[indLast]);
+  }
+}
+
 void sortQuickImprovement(int *pArr, int aFirst, int aLast)
 {
   if(aFirst >= aLast) return;
   if( (aLast - aFirst) <= 10)
-  {
-    int indLast = aFirst;
-    while(indLast < aLast)
-    {
-      indLast++;
-      for(int i = aFirst; i < indLast; i++)
-        if(pArr[i] > pArr[indLast])
-          swapInt(&pArr[i],&pArr[indLast]);
-    }
-  }
+    sortInserts(pArr,aFirst,aLast);
   else
   {
-    int ref;
-    if(pArr[aFirst] < pArr[(aFirst + aLast)/2])
-    {
-      if(pArr[aLast] < pArr[(aFirst + aLast)/2])
-        if(pArr[aFirst] < pArr[aLast])
-          ref = aLast;
-        else
-          ref = aFirst;
-      else
-        ref = (aFirst + aLast)/2;
-    }
-    else
-    {
-      if(pArr[aLast] < pArr[(aFirst + aLast)/2])
-        ref = (aFirst + aLast)/2;
-      else
-        if(pArr[aFirst] < pArr[aLast])
-          ref = aFirst;
-        else
-          ref = aLast;
-    }
-    swapInt(&pArr[ref],&pArr[(aFirst + aLast)/2]);
+    int m[3] = {pArr[aFirst],
+                pArr[(aFirst + aLast)/2],
+                pArr[aLast]};
+    sortInserts(m,0,2);
+    int ref = m[1];
 
     int indFirst = aFirst;
     int indLast = aLast;
 
     do {
-      while(pArr[indFirst] < pArr[ref]) indFirst++;
-      while(pArr[indLast] > pArr[ref]) indLast--;
+      while(pArr[indFirst] < ref) indFirst++;
+      while(pArr[indLast] > ref) indLast--;
       if(indFirst <= indLast) {
         swapInt(&pArr[indFirst],&pArr[indLast]);
         indFirst++;
@@ -197,15 +184,84 @@ void sortQuickImprovement(int *pArr, int aFirst, int aLast)
 необходимые для реализации сортировок
 */
 
+struct basket
+{
+  int cnt;
+  int *pInt;
+};
 
+basket* getBaskets(const int aNumberBaskets, const int aSizeBasket)
+{
+  basket *pBskt = nullptr;
+  try {
+    pBskt = new basket[aNumberBaskets];
+    if(pBskt != nullptr)
+    {
+      for(int i = 0; i < aNumberBaskets; i++)
+      {
+        pBskt[i].cnt = 0;
+        pBskt[i].pInt = new int[aSizeBasket];
+      }
+    }
+  }
+  catch(const std::exception&)
+  {
+    cout << "No memory allocated." << endl;
+  }
+  return pBskt;
+}
 
+void freeBaskets(basket *pBskt,const int aNumberBaskets)
+{
+  if(pBskt != nullptr)
+  {
+    for(int i = 0; i < aNumberBaskets; i++)
+    {
+      delete pBskt[i].pInt;
+    }
 
+    delete pBskt;
+    pBskt = nullptr;
+  }
+}
+
+void sortBasket(int *pArr, int aSize)
+{
+  const int NUMBER_BASKETS = 10;
+
+  basket *pBskt = getBaskets(NUMBER_BASKETS,aSize);
+  if(pBskt == nullptr) return;
+
+  for(int digit = 1; digit < 1000000000; digit *= 10)
+  {
+    for(int i = 0; i < aSize; i++)
+    {
+      if(pArr[i]%2 == 0)
+      {
+        int d = (pArr[i]/digit)%NUMBER_BASKETS;
+        pBskt[d].pInt[pBskt[d].cnt++] = pArr[i];
+        pArr[i] = -1;
+      }
+    }
+    int ind = 0;
+    for(int i = 0; i < NUMBER_BASKETS; i++)
+    {
+      for(int j = 0; j < pBskt[i].cnt; j++)
+      {
+        while(pArr[ind] != -1) ind++;
+        if(pArr[ind] == -1)
+          pArr[ind] = pBskt[i].pInt[j];
+        ind++;
+      }
+      pBskt[i].cnt = 0;
+    }
+  }
+  freeBaskets(pBskt,NUMBER_BASKETS);
+}
 
 //------------------------------------------------------------------------------
-int main() {
-//------------------------------------------------------------------------------
-  // Task 1
-  //*
+void task_1(void)
+{
   cout << "Task 1\n" << endl;
 
   const int SIZE_ARRAY = 20;
@@ -218,8 +274,38 @@ int main() {
   cout << "Array after sorting:" << endl;
   printArray((const int*)pArr, SIZE_ARRAY);
   freeArray(pArr);
+  cout << endl;
+}
+//------------------------------------------------------------------------------
+void task_2(void)
+{
+  cout << "Task 2\n" << endl;
+
+  const int SIZE_ARRAY = 40;
+
+  int* pArr = getArrayRand(SIZE_ARRAY);
+  //int pArr[] = {9,8,7,6,5,4,3,2,1,0};
+  cout << "Array before sorting:" << endl;
+  printArray((const int*)pArr, SIZE_ARRAY);
+  sortBasket(pArr,SIZE_ARRAY);
+  cout << "Array after sorting:" << endl;
+  printArray((const int*)pArr, SIZE_ARRAY);
+  freeArray(pArr);
+  cout << endl;
+}
+//------------------------------------------------------------------------------
+int main() {
+//------------------------------------------------------------------------------
+  // Task 1
+  //*
+  task_1();
   //*/
-  //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+  // Task 2
+  //*
+  task_2();
+  //*/
+//------------------------------------------------------------------------------
 	return 0;
 }
 //------------------------------------------------------------------------------
